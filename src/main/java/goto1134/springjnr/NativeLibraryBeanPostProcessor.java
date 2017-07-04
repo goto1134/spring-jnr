@@ -18,7 +18,10 @@ public class NativeLibraryBeanPostProcessor
     @Override
     public Object postProcessBeforeInitialization(Object bean, String beanName)
             throws BeansException {
-        for (Field field : bean.getClass().getDeclaredFields()) {
+        // TODO: 04.07.2017 Find out if concurrent access is available
+
+        for (Field field : bean.getClass()
+                               .getDeclaredFields()) {
             if (field.isAnnotationPresent(InjectNativeLibrary.class)) {
                 Class<?> type = field.getType();
                 if (!type.isInterface()) {
@@ -31,11 +34,11 @@ public class NativeLibraryBeanPostProcessor
                                                                " must annotated with @NativeLibrary annotation to be " +
                                                                "loaded  as native library");
                 }
-
-                NativeLibrary annotation = type.getAnnotation(NativeLibrary.class);
-                Object library = LibraryLoader.create(type)
-                                              .load(annotation.libraryName());
-                loadedLibrariesMap.put(type, library);
+                Object library = loadedLibrariesMap.computeIfAbsent(type, (c) -> {
+                    NativeLibrary annotation = c.getAnnotation(NativeLibrary.class);
+                    return LibraryLoader.create(c)
+                                        .load(annotation.libraryName());
+                });
                 field.setAccessible(true);
                 try {
                     field.set(bean, library);
