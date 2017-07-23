@@ -1,4 +1,4 @@
-package goto1134.springjnr;
+package com.github.goto1134.springjnr;
 
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;

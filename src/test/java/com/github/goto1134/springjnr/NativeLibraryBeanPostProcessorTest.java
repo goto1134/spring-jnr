@@ -1,6 +1,6 @@
-package goto1134.springjnr;
+package com.github.goto1134.springjnr;
 
-import goto1134.springjnr.random.PseudoRandomSequenceGenerator;
+import com.github.goto1134.springjnr.random.PseudoRandomSequenceGenerator;
 import jnr.ffi.CallingConvention;
 import jnr.ffi.Platform;
 import jnr.ffi.provider.IdentityFunctionMapper;

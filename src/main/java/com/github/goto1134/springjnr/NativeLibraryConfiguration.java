@@ -1,4 +1,4 @@
-package goto1134.springjnr;
+package com.github.goto1134.springjnr;
 
 /**
  * Inherit from this to declare platform-dependent and runtime-dependent parameters

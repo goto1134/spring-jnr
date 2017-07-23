@@ -1,6 +1,8 @@
-group 'goto1134'
-version '1.0-SNAPSHOT'
+group 'com.github.goto1134'
+version '1.0'
 
+apply plugin: 'maven'
+apply plugin: 'signing'
 apply plugin: 'java'
 
 sourceCompatibility = 1.8
@@ -19,4 +21,67 @@ dependencies {
     // https://mvnrepository.com/artifact/org.hamcrest/hamcrest-all
     testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: '1.3'
     testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+task javadocJar(type: Jar) {
+    classifier = 'javadoc'
+    from javadoc
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives javadocJar, sourcesJar
+}
+
+signing {
+    sign configurations.archives
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
+            }
+
+            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
+            }
+
+            pom.project {
+                name 'spring-jnr'
+                packaging 'jar'
+                // optionally artifactId can be defined here
+                description 'A library to inject JNR native libraries to Spring beans'
+                url 'https://github.com/goto1134/spring-jnr'
+
+                scm {
+                    connection 'https://github.com/goto1134/spring-jnr.git'
+                    developerConnection 'https://github.com/goto1134/spring-jnr.git'
+                    url 'https://github.com/goto1134/spring-jnr'
+                }
+
+                licenses {
+                    license {
+                        name 'MIT License'
+                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id 'goto1134'
+                        name 'Andrew Yefanov'
+                        email '1134togo@gmail.com'
+                    }
+                }
+            }
+        }
+    }
 }

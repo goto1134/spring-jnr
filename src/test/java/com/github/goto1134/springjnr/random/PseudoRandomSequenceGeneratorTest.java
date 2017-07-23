@@ -1,4 +1,4 @@
-package goto1134.springjnr.random;
+package com.github.goto1134.springjnr.random;
 
 import jnr.ffi.LibraryLoader;
 import org.junit.Assert;
