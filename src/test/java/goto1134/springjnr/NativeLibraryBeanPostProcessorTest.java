@@ -1,12 +1,16 @@
 package goto1134.springjnr;
 
 import goto1134.springjnr.random.PseudoRandomSequenceGenerator;
+import jnr.ffi.CallingConvention;
+import jnr.ffi.Platform;
+import jnr.ffi.provider.IdentityFunctionMapper;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.stereotype.Component;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -22,7 +26,7 @@ import static org.hamcrest.core.Is.is;
 @ComponentScan("goto1134.springjnr")
 public class NativeLibraryBeanPostProcessorTest {
 
-    @InjectNativeLibrary
+    @NativeLibrary
     private PseudoRandomSequenceGenerator generator;
 
     @Test
@@ -36,5 +40,20 @@ public class NativeLibraryBeanPostProcessorTest {
     @Bean
     public BeanPostProcessor nativeLibraryBeanPostProcessor() {
         return new NativeLibraryBeanPostProcessor();
+    }
+
+    @MicrosoftVisualCRuntime
+    @Component
+    public class MicrosoftVisualCRuntimeConfiguration
+            implements NativeLibraryConfiguration {
+
+        @Override
+        public LibraryInfo getLibraryInfo() {
+            if (Platform.getNativePlatform()
+                        .getOS() != Platform.OS.WINDOWS) {
+                throw new IllegalStateException("Must be windows OS");
+            }
+            return new LibraryInfo("msvcrt", "", CallingConvention.STDCALL, true, IdentityFunctionMapper.getInstance());
+        }
     }
 }

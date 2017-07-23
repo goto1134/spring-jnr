@@ -1,11 +1,16 @@
 package goto1134.springjnr;
 
-import jnr.ffi.LibraryLoader;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -13,32 +18,29 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class NativeLibraryBeanPostProcessor
         implements BeanPostProcessor {
+    private final SpringJNRLibraryLoader mSpringJNRLibraryLoader = new SpringJNRLibraryLoader();
     private Map<Class<?>, Object> loadedLibrariesMap = new ConcurrentHashMap<>();
+    private Map<Class<? extends Annotation>, LibraryInfo> configurations = new HashMap<>();
 
     @Override
     public Object postProcessBeforeInitialization(Object bean, String beanName)
             throws BeansException {
-        // TODO: 04.07.2017 Find out if concurrent access is available
-
         for (Field field : bean.getClass()
                                .getDeclaredFields()) {
-            if (field.isAnnotationPresent(InjectNativeLibrary.class)) {
-                Class<?> type = field.getType();
-                if (!type.isInterface()) {
+            if (field.isAnnotationPresent(NativeLibrary.class)) {
+                Class<?> libraryType = field.getType();
+                if (!libraryType.isInterface()) {
                     throw new IllegalArgumentException(
-                            "Class of type " + type.getSimpleName() +
+                            "Class of type " + libraryType.getSimpleName() +
                                     " must be an interface to be loaded as native library");
                 }
-                if (!type.isAnnotationPresent(NativeLibrary.class)) {
-                    throw new IllegalArgumentException("Interface " + type.getSimpleName() +
-                                                               " must annotated with @NativeLibrary annotation to be " +
-                                                               "loaded  as native library");
-                }
-                Object library = loadedLibrariesMap.computeIfAbsent(type, (c) -> {
-                    NativeLibrary annotation = c.getAnnotation(NativeLibrary.class);
-                    return LibraryLoader.create(c)
-                                        .load(annotation.libraryName());
-                });
+
+                Class<? extends Annotation> qualifier = getQualifier(libraryType)
+                        .orElseThrow(() -> new IllegalArgumentException("Library interface " + libraryType
+                                .getName() + " must have a qualifier"));
+                LibraryInfo libraryInfo = configurations.get(qualifier);
+                Object library = loadedLibrariesMap.computeIfAbsent(libraryType,
+                                                                    c -> mSpringJNRLibraryLoader.load(c, libraryInfo));
                 field.setAccessible(true);
                 try {
                     field.set(bean, library);
@@ -54,5 +56,24 @@ public class NativeLibraryBeanPostProcessor
     public Object postProcessAfterInitialization(Object bean, String beanName)
             throws BeansException {
         return bean;
+    }
+
+    private Optional<Class<? extends Annotation>> getQualifier(Class<?> aClass) {
+        for (Annotation annotation : aClass.getAnnotations()) {
+            Class<? extends Annotation> qualifierCandidate = annotation.annotationType();
+            if (qualifierCandidate.isAnnotationPresent(Qualifier.class)) {
+                return Optional.of(qualifierCandidate);
+            }
+        }
+        return Optional.empty();
+    }
+
+    @Autowired
+    void setNativeLibraryConfiguration(List<NativeLibraryConfiguration> aConfigurations) {
+        for (NativeLibraryConfiguration configuration : aConfigurations) {
+            Class<? extends Annotation> qualifier = getQualifier(configuration.getClass()).orElseThrow(
+                    () -> new IllegalArgumentException("NativeLibraryConfiguration should have a qualifier"));
+            configurations.put(qualifier, configuration.getLibraryInfo());
+        }
     }
 }
